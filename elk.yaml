@@ -1,0 +1,40 @@
+---
+- name: 'Installing ELK stack'
+  hosts: localhost
+
+  tasks:
+    - name: Add Java Repostory
+      become: yes
+      apt_repository: repo='ppa:webupd8team/java' state=present
+
+    - name: 'Accept Annoying Java License'
+      become: yes
+      debconf: name='oracle-java8-installer' question='shared/accepted-oracle-license-v1-1' value='true' vtype='select'
+
+    - name: 'Install Java'
+      become: yes
+      apt: name=oracle-java8-installer state=latest force=yes
+
+    - name: 'Adding ELK GPG key'
+      become: yes
+      shell: wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+
+    - name: 'Add to source list'
+      become: yes
+      shell: 'echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list'
+    
+    - name: 'Install Elasticsearch'
+      become: yes
+      shell: 'sudo apt-get update'
+      shell: 'sudo apt install elasticsearch'
+
+#    - name: 'Install Elasticsearch Role'  -- Tried to use this to setup the nodes ( Did not work - issues with setting up Java manually and initiating each instance)
+#      shell: ansible-galaxy install elastic.elasticsearch
+
+    - name: 'Install kibana'
+      become: yes
+      shell: 'sudo apt-get install kibana'
+
+    - name: 'Install Logstash'
+      become: yes
+      shell: 'sudo apt install logstash'

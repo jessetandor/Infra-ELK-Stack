@@ -1,0 +1,83 @@
+- name: 'Setting up Logstash with FileBeat'
+  hosts: localhost
+  become: yes
+
+  tasks:
+    - name: Create Beat File
+      file:
+        path: "/etc/logstash/conf.d/beat_input_01.conf"
+        state: touch
+
+    - name: Configure Beat
+      become: yes
+      blockinfile:
+        dest: "/etc/logstash/conf.d/beat_input_01.conf"
+        block: |
+          input {
+            beats {
+             port => 5042
+                 }
+            }
+        backup: yes
+
+    - name: Create Output file
+      become: yes
+      file:
+        path: "/etc/logstash/conf.d/elasticsearch-output_01.conf"
+        state: touch
+
+    - name: Setup Output file
+      become: yes
+      blockinfile:
+        dest: "/etc/logstash/conf.d/beat_input_01.conf"
+        block: |
+          output {
+            elasticsearch {
+              hosts => ["localhost:9200"]
+              manage_template => false
+              index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+                          }
+                  }
+        backup: yes
+
+    - name: Install Filebeat 
+      become: yes
+      shell: 'sudo apt install filebeat'
+
+    - name: Enabling FileBeat on Localhost
+      become: yes
+      replace:
+       path: /etc/filebeat/filebeat.yml
+       regexp: '#output.logstash'
+       replace: 'output.logstash'
+
+    - name: Enabling FileBeat Host
+      become: yes
+      replace:
+       path: /etc/filebeat/filebeat.yml
+       regexp: '#hosts:'
+       replace: 'hosts:'
+
+    - name: Enabling FileBeat on Port 5042
+      become: yes
+      replace:
+       path: /etc/filebeat/filebeat.yml
+       regexp: '5044'
+       replace: '5042'
+
+#    - name: Load FileBeat Template ( Unsure if this is necessary - run out of time)
+#      become: yes
+#      shell: sudo filebeat setup --template -E output.logstash.enabled=false -E 'output.elasticsearch.hosts=["localhost:9200"]'
+
+    - name: Start FileBeat
+      become: yes
+      shell: 'sudo systemctl start filebeat'
+
+    - name: Start elasticsearch
+      become: yes
+      shell: 'sudo systemctl start elasticsearch'
+
+    - name: Test elasticsearch
+      become: yes
+      shell: 'sudo systemctl start elasticsearch'
+
